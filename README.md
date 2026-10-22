@@ -100,7 +100,7 @@ FAIL/WARN line-level reason.
 python -m pytest tests/ -q
 ```
 
-43 tests, stdlib only. Manual predicate-mutation spot checks (flipping the
+45 tests, stdlib only. Manual predicate-mutation spot checks (flipping the
 CI-overlap predicate turns the overlap tests red; recorded in CHANGELOG).
 
 ## Limits (honest)
