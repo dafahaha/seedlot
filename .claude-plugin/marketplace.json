@@ -1,0 +1,13 @@
+{
+  "name": "dafahaha-skills",
+  "owner": {
+    "name": "Daizhi Liao (dafahaha)"
+  },
+  "plugins": [
+    {
+      "name": "seedlot",
+      "source": "./",
+      "description": "Multi-seed RL result aggregation gate (n, mean +/- std, IQR, 95% CI; blocks single-seed and overlapping-CI superiority claims)."
+    }
+  ]
+}

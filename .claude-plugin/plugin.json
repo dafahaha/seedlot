@@ -1,0 +1,21 @@
+{
+  "name": "seedlot",
+  "version": "1.2.0",
+  "description": "Multi-seed RL result aggregation gate: computes n, mean +/- std, IQR and 95% CI from per-seed logs and blocks single-seed/overlapping-CI superiority claims. Stdlib Python, no network.",
+  "author": {
+    "name": "Daizhi Liao (dafahaha)"
+  },
+  "license": "MIT",
+  "keywords": [
+    "reinforcement-learning",
+    "multi-seed",
+    "statistics",
+    "reproducibility",
+    "research-honesty"
+  ],
+  "homepage": "https://github.com/dafahaha/seedlot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dafahaha/seedlot.git"
+  }
+}
