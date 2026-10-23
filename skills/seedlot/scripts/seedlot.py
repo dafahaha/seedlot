@@ -322,9 +322,24 @@ def csv_seed_values(
                         f"({seed_column!r}) value; fix the ragged row"
                     )
                 label = str(raw_label).strip()
+                raw_reward = row.get(col)
                 if label == "":
-                    continue
-                val = _to_float(row[col], f"{path.name} seed={label}")
+                    # A fully blank separator/trailing row (no label, no reward)
+                    # is skipped. A row that carries a reward but no seed label
+                    # is malformed: reject it rather than silently shrinking n.
+                    if raw_reward is None or str(raw_reward).strip() == "":
+                        continue
+                    raise ValueError(
+                        f"{path.name}: row has reward {str(raw_reward).strip()!r} "
+                        "but an empty seed label; fill the label or drop the row "
+                        "deliberately"
+                    )
+                if raw_reward is None:
+                    raise ValueError(
+                        f"{path.name}: row is missing its reward column {col!r}; "
+                        "fix the ragged row"
+                    )
+                val = _to_float(raw_reward, f"{path.name} seed={label}")
                 if label in seen:
                     warnings.append(
                         f"{path.name}: seed label {label!r} appears more than once; "
@@ -337,7 +352,15 @@ def csv_seed_values(
         rows = [r for r in reader if any(str(c).strip() for c in r.values())]
         if not rows:
             raise ValueError(f"{path.name}: no data rows")
-        series = [_to_float(r[col], f"{path.name} row {i + 2}") for i, r in enumerate(rows)]
+        series = []
+        for i, r in enumerate(rows):
+            raw = r.get(col)
+            if raw is None:
+                raise ValueError(
+                    f"{path.name}: row is missing its reward column {col!r}; "
+                    "fix the ragged row"
+                )
+            series.append(_to_float(raw, f"{path.name} row {i + 2}"))
         return {path.stem: _last_k_mean(series, last_k)}, warnings
 
 

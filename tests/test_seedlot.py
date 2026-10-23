@@ -447,3 +447,20 @@ def test_seed_column_missing_cell_raises(tmp_path: Path):
     p.write_text("reward,seed\n5,a\n9\n", encoding="utf-8")
     with pytest.raises(ValueError, match="seed-column"):
         sl.collect(p, None, "seed")
+
+
+def test_row_with_reward_but_blank_seed_label_raises(tmp_path: Path):
+    p = tmp_path / "x.csv"
+    # A fully blank row is skipped, but a row carrying a reward with no seed
+    # label is malformed and must not be silently dropped.
+    p.write_text("seed,reward\na,5\n\n\n,9\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty seed label"):
+        sl.collect(p, None, "seed")
+
+
+def test_row_missing_reward_cell_raises(tmp_path: Path):
+    p = tmp_path / "x.csv"
+    # Seed is the first column; a short row leaves the reward cell missing.
+    p.write_text("seed,reward\na,5\nb\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="reward column"):
+        sl.collect(p, None, "seed")

@@ -1,5 +1,15 @@
 # Changelog — seedlot
 
+v1.5.0 — 2026-10-23
+
+## Round-7 independent clean review (fresh reviewer, cold reading)
+- A data row carrying a reward but an empty seed label is now rejected (it used
+  to be silently skipped, shrinking n); a fully blank separator row is still
+  skipped.
+- A short/ragged row missing the reward cell now raises a clean ValueError
+  (the direct `row[col]` index could otherwise throw an uncaught KeyError).
+- Suite: 52 tests (2 added).
+
 v1.4.0 — 2026-10-23
 
 ## Round-6 independent clean review (fresh reviewer, cold reading)
