@@ -1,5 +1,18 @@
 # Changelog — seedlot
 
+v1.4.0 — 2026-10-23
+
+## Round-6 independent clean review (fresh reviewer, cold reading)
+- P2-4 (fixed): the seed column is now resolved exact-then-case-insensitive,
+  matching the reward-column behavior (`--seed-column SEED` still finds a
+  `seed` header) via `_resolve_seed_column`.
+- P2-3 (partial): `csv.Error` is now included in the CLI catch so a malformed
+  CSV is a clean exit-1 error (UnicodeDecodeError was already a ValueError).
+- New test: case-insensitive seed column. Suite: 49 -> 50.
+- Kept as intentional, test-pinned behavior: the duplicate-label warning in
+  long-table mode (it tells the user a label spans multiple rows feeding the
+  last-K mean) and skipping blank-label rows.
+
 v1.3.0 — 2026-10-23
 
 ## Round-5 independent technical review (fresh reviewer, cold reading)

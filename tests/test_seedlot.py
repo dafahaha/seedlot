@@ -161,6 +161,14 @@ def test_single_csv_seed_column_groups_last_value(tmp_path: Path):
     assert got == {"a": 9.0, "b": 12.0}
 
 
+def test_seed_column_case_insensitive(tmp_path: Path):
+    p = tmp_path / "all.csv"
+    _write_csv(p, ["seed", "return"], [["a", 5.0], ["b", 7.0]])
+    # Header is lowercase `seed`; request it with a different case.
+    got, _ = sl.collect(p, None, "SEED")
+    assert got == {"a": 5.0, "b": 7.0}
+
+
 def test_bom_and_alternate_reward_column(tmp_path: Path):
     p = tmp_path / "b.csv"
     p.write_bytes("﻿seed,score\r\na,5\r\nb,7\r\n".encode("utf-8"))

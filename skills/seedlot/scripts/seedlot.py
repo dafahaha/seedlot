@@ -238,6 +238,17 @@ def compare_arms(name_a: str, sa: dict, name_b: str, sb: dict) -> dict:
 # IO: load per-seed final returns (pure parsing, no training)
 # --------------------------------------------------------------------------- #
 
+def _resolve_seed_column(fieldnames: list[str], requested: str) -> str:
+    """Resolve the seed column, exact then case-insensitive (consistent with the
+    reward-column matching), so --seed-column Seed still matches a `seed` header."""
+    if requested in fieldnames:
+        return requested
+    ci = {f.lower(): f for f in fieldnames}
+    if requested.lower() in ci:
+        return ci[requested.lower()]
+    raise ValueError(f"seed column '{requested}' not found; have: {fieldnames}")
+
+
 def _pick_column(fieldnames: list[str], requested: str | None) -> str:
     if requested:
         # Exact, then case-insensitive, so --reward-column Reward still resolves.
@@ -298,12 +309,11 @@ def csv_seed_values(
             raise ValueError(f"{path.name}: empty CSV")
         col = _pick_column(list(reader.fieldnames), reward_column)
         if seed_column:
-            if seed_column not in reader.fieldnames:
-                raise ValueError(f"seed column '{seed_column}' not found; have: {reader.fieldnames}")
+            real_seed_col = _resolve_seed_column(list(reader.fieldnames), seed_column)
             groups: dict[str, list[float]] = {}
             seen: set[str] = set()
             for row in reader:
-                raw_label = row.get(seed_column)
+                raw_label = row.get(real_seed_col)
                 # A missing seed cell (ragged/short row) is a malformed input,
                 # not a literal "None" group; reject it explicitly.
                 if raw_label is None:
@@ -519,7 +529,7 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.output).write_text(rendered + "\n", encoding="utf-8")
         else:
             print(rendered)
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, csv.Error) as exc:
         print(f"seedlot: error: {exc}", file=sys.stderr)
         return 1
 
