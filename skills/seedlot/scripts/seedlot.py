@@ -200,14 +200,15 @@ def gate_arm(summary: dict) -> tuple[list[str], list[str]]:
     failures: list[str] = []
     warnings: list[str] = []
     n = summary["n"]
-    if n == 0:
-        failures.append("no seed values found")
-    elif n == 1:
+    # An empty sample is a usage/IO error (exit 1) by the time this runs:
+    # collect() rejects empty dirs/no data rows and summarize([]) raises, so
+    # n==0 never reaches here. n=1 is a hard gate.
+    if n == 1:
         failures.append(
             "only 1 seed: a single run is not a distribution; do not report a "
             "headline mean or superiority claim from it"
         )
-    else:
+    elif n >= 2:
         if n < 3:
             warnings.append(
                 f"n={n} seeds: reviewers usually require >=3 (>=5 for a headline "

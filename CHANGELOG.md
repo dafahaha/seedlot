@@ -1,5 +1,16 @@
 # Changelog — seedlot
 
+v1.6.0 — 2026-10-23
+
+## Round-8 independent clean review (fresh reviewer, cold reading)
+- Removed the unreachable `n==0` hard-failure branch in `gate_arm`: an empty
+  sample is a usage/IO error (exit 1) by contract — `collect()` rejects empty
+  dirs/no data rows and `summarize([])` raises, so n==0 never reached it.
+- Fully blank rows remain silently skipped in both modes (standard CSV
+  behavior); a WARN would fire on every trailing blank line, so this is
+  intentional and documented.
+- Suite: 52 tests.
+
 v1.5.0 — 2026-10-23
 
 ## Round-7 independent clean review (fresh reviewer, cold reading)
