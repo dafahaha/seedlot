@@ -464,3 +464,11 @@ def test_row_missing_reward_cell_raises(tmp_path: Path):
     p.write_text("seed,reward\na,5\nb\n", encoding="utf-8")
     with pytest.raises(ValueError, match="reward column"):
         sl.collect(p, None, "seed")
+
+
+def test_single_seed_summary_does_not_show_std():
+    # R10 P2-1: n=1 makes std/SEM undefined; do not print a misleading "std 0".
+    s = sl.summarize([5.0])
+    report = sl.format_summary("arm", s)
+    assert "std/SEM undefined" in report
+    assert "sample std 0.0000" not in report

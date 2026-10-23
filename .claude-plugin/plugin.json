@@ -1,6 +1,6 @@
 {
   "name": "seedlot",
-  "version": "1.3.0",
+  "version": "1.7.0",
   "description": "Multi-seed RL result aggregation gate: computes n, mean +/- std, IQR and 95% CI from per-seed logs and blocks single-seed/overlapping-CI superiority claims. Stdlib Python, no network.",
   "author": {
     "name": "Daizhi Liao (dafahaha)"

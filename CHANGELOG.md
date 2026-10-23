@@ -1,5 +1,10 @@
 # Changelog — seedlot
 
+v1.7.0 — 2026-10-23
+- P2-1 (fixed): the n=1 summary no longer prints a misleading "sample std
+  0.0000"; it states std/SEM are undefined for a single seed.
+- Suite: 53 pytest.
+
 v1.6.0 — 2026-10-23
 
 ## Round-8 independent clean review (fresh reviewer, cold reading)

@@ -409,7 +409,14 @@ def collect(
 def format_summary(name: str, s: dict) -> str:
     lines = [f"### {name}", ""]
     lines.append(f"- seeds (n): **{s['n']}**")
-    lines.append(f"- mean: **{s['mean']:.4f}**  (sample std {s['std']:.4f}, SEM {s['sem']:.4f})")
+    # n=1 makes std/SEM mathematically undefined; do not print a misleading
+    # "std 0.0000" that could be read as observed zero dispersion.
+    if s["n"] > 1:
+        lines.append(
+            f"- mean: **{s['mean']:.4f}**  (sample std {s['std']:.4f}, SEM {s['sem']:.4f})"
+        )
+    else:
+        lines.append(f"- mean: **{s['mean']:.4f}**  (single seed; std/SEM undefined)")
     if s["n"] > 1:
         lines.append(
             f"- 95% CI: [{s['ci_lo']:.4f}, {s['ci_hi']:.4f}]  "
