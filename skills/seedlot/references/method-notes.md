@@ -11,9 +11,10 @@ These are textbook choices, not new evidence. The tool computes, it does not inv
 
 - n, arithmetic mean, sample standard deviation (denominator n-1), SEM = sd/sqrt(n), median, IQR (type-7 linear interpolation), min, max.
 - 95% CI: mean +/- t_{0.975, n-1} * SEM. Exact two-sided t critical values are
-  tabulated for df 1..30; beyond df=30 the normal 1.96 tail is used as an
-  approximation (t and z differ by under 1% there) and the report labels it
-  `normal-approx`. n=1 reports a point only and defines no CI.
+  tabulated for df 1..30; beyond df=30 a Cornish-Fisher t approximation is used
+  (4-term expansion around the normal z, error <5e-4 vs scipy; it converges to
+  the 1.96 tail as df grows) and the report labels it `t-approx`. n=1 reports a
+  point only and defines no CI.
 
 ## Two-arm comparison
 

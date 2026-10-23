@@ -1,5 +1,23 @@
 # Changelog — seedlot
 
+v1.3.0 — 2026-10-23
+
+## Round-5 independent technical review (fresh reviewer, cold reading)
+- P1-1 (fixed): argparse usage errors (missing positional, invalid type) exited
+  2, colliding with the "warnings" exit code; a custom parser now exits 1 for
+  usage errors (--help still exits 0).
+- P1-2 (fixed): df>30 used a hard 1.96 normal tail, narrowing the CI and risking
+  a false DISJOINT in the overlap gate; replaced with a 4-term Cornish-Fisher t
+  approximation (error <5e-4 vs scipy; df=31 -> 2.0395, df=100 -> 1.9840).
+  ci_method label is now `t-approx` (was `normal-approx`).
+- P2-1 (fixed): reward-column auto-detect is now case-insensitive.
+- P2-2 (fixed): broadened the CLI catch to OSError (PermissionError, etc.).
+- P2-3 (fixed): `--output` write is inside the try (clean exit 1 on bad path).
+- P2-4 (fixed): a missing seed cell (ragged row) raises instead of being
+  aggregated as a literal "None" label.
+- New tests: usage-error exit 1, conservative t>1.96, case-insensitive column,
+  missing seed cell. Suite: 45 -> 49.
+
 v1.0.0 — 2026-10-22
 
 ## v1 (baseline)

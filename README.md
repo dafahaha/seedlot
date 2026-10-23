@@ -100,7 +100,7 @@ FAIL/WARN line-level reason.
 python -m pytest tests/ -q
 ```
 
-45 tests, stdlib only. Manual predicate-mutation spot checks (flipping the
+49 tests, stdlib only. Manual predicate-mutation spot checks (flipping the
 CI-overlap predicate turns the overlap tests red; recorded in CHANGELOG).
 
 ## Limits (honest)
@@ -109,8 +109,9 @@ CI-overlap predicate turns the overlap tests red; recorded in CHANGELOG).
   interval; wide small-n CIs are left wide on purpose. A *non-overlapping* 95% CI
   is a numerical gate, not proof of superiority; *overlapping* CIs are a
   conservative "do not claim superiority" heuristic, not proof the arms are equal.
-- t critical values are exact through df=30; beyond that the normal 1.96 tail is
-  used (t and z differ by under 1% there).
+- t critical values are exact through df=30; beyond that a Cornish-Fisher t
+  approximation is used (accurate to <5e-4 vs scipy; it converges to the 1.96
+  normal tail as df grows), so the CI is not narrowed by a hard 1.96.
 - Trusts the seed labels: it cannot detect that two labeled seeds actually ran
   identical initializations.
 - Reads the CSVs you pass into memory; point it at local logs, not a multi-GB dump.

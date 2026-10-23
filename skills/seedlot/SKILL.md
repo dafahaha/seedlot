@@ -39,7 +39,7 @@ python skills/seedlot/scripts/seedlot.py <runs_dir_or.csv> \
    - `FAIL` (exit 3): single seed, or the two arms' 95% CIs overlap — do not write a superiority claim.
    - `WARN` (exit 2): n<3, zero variance, duplicate seed labels, duplicate CSV stems, etc.
    - Clean (exit 0): report n, mean +/- std and the CI; still state environment, scale and n in the text.
-   - A df>30 normal-approx CI only adds a note in the report; it does not change the exit code.
+   - A df>30 CI (Cornish-Fisher t approximation) only adds a note in the report; it does not change the exit code.
 4. In a two-arm comparison, pass Cohen's d magnitude alongside the mean difference; a disjoint CI is necessary but not sufficient for a claim.
 5. Translate the summary into distribution language ("mean +/- std over n seeds, 95% CI [...]"), never a cherry-picked best curve.
 
@@ -47,7 +47,7 @@ python skills/seedlot/scripts/seedlot.py <runs_dir_or.csv> \
 
 - n=1: point only, no CI, no robustness statement.
 - n=2: warning; report both raw values, no "stable".
-- n>=3: report the distribution; CI uses an exact small-sample t table through df=30; beyond df=30 the normal 1.96 tail is used and flagged as an approximation in the report.
+- n>=3: report the distribution; CI uses an exact small-sample t table through df=30; beyond df=30 a Cornish-Fisher t approximation is used (accurate to <5e-4, converging to the 1.96 normal tail) and flagged in the report.
 - Overlapping CIs: the samples are consistent with no difference; say "no observed separation at this n".
 
 ## Boundaries

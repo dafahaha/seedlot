@@ -56,7 +56,9 @@ def test_t_critical_table_and_fallback():
     assert sl.t_critical(1) == pytest.approx(12.706)
     assert sl.t_critical(9) == pytest.approx(2.262)
     assert sl.t_critical(30) == pytest.approx(2.042, rel=1e-3)
-    assert sl.t_critical(100) == pytest.approx(1.96)
+    # df>30: Cornish-Fisher t approximation (not a hard 1.96); checked vs scipy.
+    assert sl.t_critical(100) == pytest.approx(1.984, rel=1e-3)
+    assert sl.t_critical(1000) == pytest.approx(1.9623, rel=1e-3)
     with pytest.raises(ValueError):
         sl.t_critical(0)
 
@@ -359,18 +361,19 @@ def test_cli_nan_cell_exits_one(tmp_path: Path):
 
 # ---- Round-1 follow-up: t approximation boundary, duplicate labels/stems ----
 
-def test_t_critical_df31_uses_normal_approx():
-    # P2-2: exact table ends at df=30; only beyond that does 1.96 apply.
+def test_t_critical_df31_uses_t_approximation():
+    # Exact table ends at df=30; beyond it a Cornish-Fisher t approximation is
+    # used (still well above 1.96 at df=31), so the CI is not narrowed.
     assert sl.t_critical(30) == pytest.approx(2.042, rel=1e-3)
-    assert sl.t_critical(31) == pytest.approx(1.96)
-    assert sl.t_critical(100) == pytest.approx(1.96)
+    assert sl.t_critical(31) == pytest.approx(2.0395, rel=1e-3)
+    assert sl.t_critical(100) == pytest.approx(1.984, rel=1e-3)
 
 
 def test_summarize_flags_ci_method_exact_vs_approx():
     s31 = sl.summarize([float(v) for v in range(1, 32)])  # n=31 -> df=30 exact
     assert s31["ci_method"] == "exact-t"
-    s32 = sl.summarize([float(v) for v in range(1, 33)])  # n=32 -> df=31 approx
-    assert s32["ci_method"] == "normal-approx"
+    s32 = sl.summarize([float(v) for v in range(1, 33)])  # n=32 -> df=31 t-approx
+    assert s32["ci_method"] == "t-approx"
 
 
 def test_duplicate_label_averages_all_rows_not_overwrite(tmp_path: Path):
@@ -392,8 +395,8 @@ def test_merge_part_warns_on_duplicate_stem():
     assert any("duplicate CSV stem" in w for w in warns)
 
 
-def test_report_marks_normal_approx_ci(tmp_path: Path, capsys):
-    # The Markdown report must flag the df>30 normal approximation explicitly.
+def test_report_marks_t_approx_ci(tmp_path: Path, capsys):
+    # The Markdown report must flag the df>30 Cornish-Fisher t approximation.
     vals = [float(v) for v in range(1, 33)]
     d = tmp_path / "runs"
     d.mkdir()
@@ -402,4 +405,37 @@ def test_report_marks_normal_approx_ci(tmp_path: Path, capsys):
     code = sl.main([str(d)])
     assert code == 0
     out = capsys.readouterr().out
-    assert "normal 1.96 tail" in out
+    assert "Cornish-Fisher t approximation" in out
+
+
+# ---- R5 review: argparse usage exit code, case-insensitive column, None label ----
+
+def test_argparse_usage_error_exits_one():
+    # Missing positional source / invalid type must exit 1 (usage), not 2 (the
+    # argparse default which collides with the warnings exit code).
+    with pytest.raises(SystemExit) as e:
+        sl.main([])
+    assert e.value.code == 1
+    with pytest.raises(SystemExit) as e:
+        sl.main(["x", "--last-k", "notanint"])
+    assert e.value.code == 1
+
+
+def test_t_approximation_is_conservative_above_normal():
+    # The t approximation for df>30 must stay above 1.96 (fail-closed): a hard
+    # 1.96 would narrow the CI and could turn a true overlap into DISJOINT.
+    for df in (31, 40, 60, 100, 200):
+        assert sl.t_critical(df) > 1.96
+
+
+def test_pick_column_case_insensitive():
+    assert sl._pick_column(["Step", "Reward"], None) == "Reward"
+    assert sl._pick_column(["step", "EVAL_RETURN"], None) == "EVAL_RETURN"
+
+
+def test_seed_column_missing_cell_raises(tmp_path: Path):
+    p = tmp_path / "x.csv"
+    # Seed is the second column; a short row leaves it missing (None).
+    p.write_text("reward,seed\n5,a\n9\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="seed-column"):
+        sl.collect(p, None, "seed")

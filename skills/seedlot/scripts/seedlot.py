@@ -33,8 +33,9 @@ import statistics
 import sys
 from pathlib import Path
 
-# Two-sided t critical values for df = n-1, alpha=0.05 (table to df=30; beyond
-# that the normal 1.96 approximation is used, where t and z differ by <1%).
+# Two-sided t critical values for df = n-1, alpha=0.05 (exact table to df=30).
+# Beyond df=30 a Cornish-Fisher expansion (see _t_critical_large) approximates
+# the exact t quantile; it converges to the normal 1.96 tail as df grows.
 _T95 = {
     1: 12.706,
     2: 4.303,
@@ -67,7 +68,8 @@ _T95 = {
     29: 2.045,
     30: 2.042,
 }
-_T95_LARGE = 1.96  # normal approximation for df > 30
+# Standard-normal 97.5% quantile (two-sided 95% base for the expansion).
+_Z975 = 1.959963984540054
 
 # Candidate reward column names, tried in order when --reward-column is unset.
 REWARD_CANDIDATES = ("reward", "eval_return", "return", "episode_return", "mean_return", "score")
@@ -77,12 +79,33 @@ REWARD_CANDIDATES = ("reward", "eval_return", "return", "episode_return", "mean_
 # Pure statistics helpers (unit tested, no IO)
 # --------------------------------------------------------------------------- #
 
+def _t_critical_large(df: int) -> float:
+    """t quantile for df>30 via a 4-term Cornish-Fisher expansion around the
+    normal z. Error is <5e-4 vs the exact t for df>=31 (e.g. df=31 -> 2.0395,
+    df=100 -> 1.9840, df=1000 -> 1.9624). This keeps the CI (and the overlap
+    gate) from being artificially narrowed by a hard 1.96 at small df."""
+    z = _Z975
+    z3 = z * z * z
+    z5 = z3 * z * z
+    z7 = z5 * z * z
+    nu = float(df)
+    # Cornish-Fisher terms in 1/nu
+    t1 = (z3 + z) / (4.0 * nu)
+    t2 = (5.0 * z5 + 16.0 * z3 + 3.0 * z) / (96.0 * nu * nu)
+    t3 = (3.0 * z7 + 19.0 * z5 + 17.0 * z3 - 15.0 * z) / (384.0 * nu ** 3)
+    t4 = (79.0 * z ** 9 + 776.0 * z7 + 1482.0 * z5 - 1920.0 * z3 - 945.0 * z) \
+        / (92160.0 * nu ** 4)
+    return z + t1 + t2 + t3 + t4
+
+
 def t_critical(df: int) -> float:
-    """Two-sided 95% t critical value; exact table through df=30, normal tail
-    (1.96) only beyond that where t and z differ by under 1%."""
+    """Two-sided 95% t critical value; exact table through df=30, Cornish-Fisher
+    t approximation beyond that (converges to the 1.96 normal tail)."""
     if df < 1:
         raise ValueError("df must be >= 1")
-    return _T95.get(df, _T95_LARGE)
+    if df in _T95:
+        return _T95[df]
+    return _t_critical_large(df)
 
 
 def _require_finite(values: list[float], what: str) -> None:
@@ -129,9 +152,10 @@ def summarize(values: list[float]) -> dict:
     df = n - 1
     tcrit = t_critical(df) if n > 1 else 0.0
     half = tcrit * sem
-    # Exact t table through df=30; beyond that the normal 1.96 tail is an
-    # approximation (t and z differ by <1% there), flagged so the reader knows.
-    ci_method = "point-only" if n == 1 else ("exact-t" if df in _T95 else "normal-approx")
+    # Exact t table through df=30; beyond that a Cornish-Fisher t approximation
+    # (accurate to <5e-4, converging to the 1.96 normal tail), flagged so the
+    # reader knows the CI is not from the exact lookup table.
+    ci_method = "point-only" if n == 1 else ("exact-t" if df in _T95 else "t-approx")
     s = sorted(values)
     return {
         "n": n,
@@ -216,12 +240,18 @@ def compare_arms(name_a: str, sa: dict, name_b: str, sb: dict) -> dict:
 
 def _pick_column(fieldnames: list[str], requested: str | None) -> str:
     if requested:
-        if requested not in fieldnames:
-            raise ValueError(f"reward column '{requested}' not found; have: {fieldnames}")
-        return requested
+        # Exact, then case-insensitive, so --reward-column Reward still resolves.
+        if requested in fieldnames:
+            return requested
+        ci = {f.lower(): f for f in fieldnames}
+        if requested.lower() in ci:
+            return ci[requested.lower()]
+        raise ValueError(f"reward column '{requested}' not found; have: {fieldnames}")
+    # Auto-detect: case-insensitive exact match against the candidate list.
+    lower_map = {f.lower(): f for f in fieldnames}
     for cand in REWARD_CANDIDATES:
-        if cand in fieldnames:
-            return cand
+        if cand in lower_map:
+            return lower_map[cand]
     raise ValueError(
         f"no reward column found (tried {REWARD_CANDIDATES}); pass --reward-column"
     )
@@ -273,7 +303,15 @@ def csv_seed_values(
             groups: dict[str, list[float]] = {}
             seen: set[str] = set()
             for row in reader:
-                label = str(row[seed_column]).strip()
+                raw_label = row.get(seed_column)
+                # A missing seed cell (ragged/short row) is a malformed input,
+                # not a literal "None" group; reject it explicitly.
+                if raw_label is None:
+                    raise ValueError(
+                        f"{path.name}: a row is missing its seed-column "
+                        f"({seed_column!r}) value; fix the ragged row"
+                    )
+                label = str(raw_label).strip()
                 if label == "":
                     continue
                 val = _to_float(row[col], f"{path.name} seed={label}")
@@ -343,10 +381,11 @@ def format_summary(name: str, s: dict) -> str:
             f"- 95% CI: [{s['ci_lo']:.4f}, {s['ci_hi']:.4f}]  "
             f"(median {s['median']:.4f}, IQR {s['iqr']:.4f})"
         )
-        if s.get("ci_method") == "normal-approx":
+        if s.get("ci_method") == "t-approx":
             lines.append(
-                "- note: df>30, CI uses the normal 1.96 tail (t and z differ by "
-                "under 1% there); this is an approximation, not the exact t value"
+                "- note: df>30, CI uses a Cornish-Fisher t approximation "
+                "(accurate to <5e-4, converging to the 1.96 normal tail), not the "
+                "exact lookup-table t value"
             )
         lines.append(f"- range: [{s['min']:.4f}, {s['max']:.4f}]")
     else:
@@ -437,8 +476,18 @@ def build_json(
     return payload
 
 
+class _Parser(argparse.ArgumentParser):
+    """ArgumentParser whose *usage* errors exit 1 (the argparse default is 2,
+    which collides with this script's exit-code contract where 2 = warnings).
+    --help still exits 0."""
+
+    def error(self, message: str) -> None:
+        self.print_usage(sys.stderr)
+        self.exit(1, f"{self.prog}: error: {message}\n")
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Honest multi-seed RL aggregation gate (stdlib only).")
+    ap = _Parser(description="Honest multi-seed RL aggregation gate (stdlib only).")
     ap.add_argument("source", help="directory of per-seed CSVs, or one CSV with a seed column")
     ap.add_argument("--reward-column", default=None, help="reward/return column name")
     ap.add_argument("--seed-column", default=None, help="seed column name (single-CSV mode)")
@@ -464,14 +513,15 @@ def main(argv: list[str] | None = None) -> int:
             rendered = json.dumps(payload, indent=2, ensure_ascii=False)
         else:
             rendered = report
-    except (ValueError, FileNotFoundError) as exc:
+        # Output writing stays inside the try so a missing/unwritable output
+        # path is a clean exit-1 usage error, not an uncaught traceback.
+        if args.output:
+            Path(args.output).write_text(rendered + "\n", encoding="utf-8")
+        else:
+            print(rendered)
+    except (ValueError, OSError) as exc:
         print(f"seedlot: error: {exc}", file=sys.stderr)
         return 1
-
-    if args.output:
-        Path(args.output).write_text(rendered + "\n", encoding="utf-8")
-    else:
-        print(rendered)
 
     if failures:
         return 3
