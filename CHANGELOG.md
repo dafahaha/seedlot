@@ -1,5 +1,16 @@
 # Changelog — seedlot
 
+v1.7.1 — 2026-10-23
+
+## Round-12 independent clean review (fresh reviewer, cold reading)
+- P2 (fixed): the JSON summary no longer reports `zero_variance=true` for a
+  single seed — dispersion is undefined for n=1, not observed-zero. The
+  Markdown report already hid it; this aligns the machine-consumed JSON.
+- P2 (fixed): the Cohen's d magnitude label now uses the classic bands
+  (negligible <0.2 / small 0.2–0.5 / medium 0.5–0.8 / large >=0.8) instead of
+  lumping 0.2–0.5 into "small".
+- Suite: 53 pytest.
+
 v1.7.0 — 2026-10-23
 - P2-1 (fixed): the n=1 summary no longer prints a misleading "sample std
   0.0000"; it states std/SEM are undefined for a single seed.

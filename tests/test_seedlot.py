@@ -38,6 +38,9 @@ def test_summarize_single_value_has_zero_std():
     assert s["n"] == 1
     assert s["std"] == 0.0
     assert s["ci_lo"] == s["ci_hi"] == 7.0
+    # Dispersion is undefined for n=1, not observed-zero: zero_variance must
+    # not be reported true for a single seed.
+    assert s["zero_variance"] is False
 
 
 def test_summarize_empty_raises():

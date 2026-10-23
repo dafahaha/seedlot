@@ -169,7 +169,9 @@ def summarize(values: list[float]) -> dict:
         "iqr": iqr(values),
         "min": s[0],
         "max": s[-1],
-        "zero_variance": sd == 0.0,
+        # Dispersion is undefined (not zero) for n=1; do not report a false
+        # zero_variance to JSON consumers for a single seed.
+        "zero_variance": n > 1 and sd == 0.0,
     }
 
 
@@ -463,7 +465,7 @@ def build_report(
         cmp_blocks.append("")
         cmp_blocks.append(f"- mean difference: {c['mean_diff']:.4f}")
         if d is not None:
-            cmp_blocks.append(f"- pooled Cohen's d: {d:.3f} (small |d|<0.5, medium <0.8, large >=0.8)")
+            cmp_blocks.append(f"- pooled Cohen's d: {d:.3f} (negligible |d|<0.2, small 0.2-0.5, medium 0.5-0.8, large >=0.8)")
         else:
             cmp_blocks.append("- pooled Cohen's d: n/a (n<2 or zero pooled variance)")
         if c["ci_overlap"]:
