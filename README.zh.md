@@ -18,11 +18,11 @@ RL 结果对种子敏感，但 agent 和研究者常拿一条幸运曲线写标�
 
   ```bash
   claude plugin marketplace add dafahaha/seedlot
-  claude plugin install seedlot@dafahaha-skills
+  claude plugin install seedlot@seedlot
   ```
 
   在会话内等价于先 `/plugin marketplace add dafahaha/seedlot`，再
-  `/plugin install seedlot@dafahaha-skills`。
+  `/plugin install seedlot@seedlot`。
 
 - **Claude Code（本地开发）：** `claude --plugin-dir ./seedlot`。
 

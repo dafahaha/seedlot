@@ -28,11 +28,11 @@ No build, no dependency install.
 
   ```bash
   claude plugin marketplace add dafahaha/seedlot
-  claude plugin install seedlot@dafahaha-skills
+  claude plugin install seedlot@seedlot
   ```
 
   In a session, the same flow is `/plugin marketplace add dafahaha/seedlot`
-  followed by `/plugin install seedlot@dafahaha-skills`.
+  followed by `/plugin install seedlot@seedlot`.
 
 - **Claude Code (local development):** `claude --plugin-dir ./seedlot`.
 
