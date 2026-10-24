@@ -14,13 +14,17 @@ RL 结果对种子敏感，但 agent 和研究者常拿一条幸运曲线写标�
 
 无需编译，无需安装依赖。
 
-- **Claude Code（本地，无需市场）：**
+- **Claude Code（通过 GitHub 个人市场）：**
 
   ```bash
-  claude --plugin-dir ./seedlot
+  claude plugin marketplace add dafahaha/seedlot
+  claude plugin install seedlot@dafahaha-skills
   ```
 
-  或加入本目录的 `.claude-plugin/marketplace.json` 后按名安装。
+  在会话内等价于先 `/plugin marketplace add dafahaha/seedlot`，再
+  `/plugin install seedlot@dafahaha-skills`。
+
+- **Claude Code（本地开发）：** `claude --plugin-dir ./seedlot`。
 
 - **便携 skill（Codex CLI / Cursor / Gemini CLI / Roo Code）：** 把
   `skills/seedlot/` 复制到客户端的 skills 目录（`~/.codex/skills/`、

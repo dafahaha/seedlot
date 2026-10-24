@@ -24,13 +24,17 @@ not rescue a weak experiment — it reports what the numbers allow you to say.
 
 No build, no dependency install.
 
-- **Claude Code (local, no marketplace needed):**
+- **Claude Code (from GitHub, personal marketplace):**
 
   ```bash
-  claude --plugin-dir ./seedlot
+  claude plugin marketplace add dafahaha/seedlot
+  claude plugin install seedlot@dafahaha-skills
   ```
 
-  or add this folder's `.claude-plugin/marketplace.json` and install by name.
+  In a session, the same flow is `/plugin marketplace add dafahaha/seedlot`
+  followed by `/plugin install seedlot@dafahaha-skills`.
+
+- **Claude Code (local development):** `claude --plugin-dir ./seedlot`.
 
 - **Portable skill (Codex CLI / Cursor / Gemini CLI / Roo Code):** copy
   `skills/seedlot/` into the client's skills directory (`~/.codex/skills/`,
