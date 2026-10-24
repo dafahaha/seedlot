@@ -86,7 +86,7 @@ Markdown 的 `## gates` 段落逐条列出 FAIL/WARN 的行级原因。
 python -m pytest tests/ -q
 ```
 
-49 个测试，仅标准库。人工谓词变异抽查（翻转 CI 重叠谓词会使重叠测试变红；记录在 CHANGELOG）。
+53 个测试，仅标准库。人工谓词变异抽查（翻转 CI 重叠谓词会使重叠测试变红；记录在 CHANGELOG）。
 
 ## 限制（诚实披露）
 
