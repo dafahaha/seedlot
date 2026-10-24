@@ -1,5 +1,15 @@
 # Changelog — seedlot
 
+v1.7.2 — 2026-10-24
+
+## Round-13 independent clean review (fresh reviewer, cold reading)
+- P2 (fixed): the n=1 summary now returns `std`, `sem` and `iqr` as `None`
+  (JSON `null`) instead of a misleading `0.0`. Dispersion is undefined for a
+  single seed; `format_summary` already rendered it as undefined — this
+  aligns the data layer with the existing Markdown/JSON behaviour end to end,
+  so no consumer can read a single seed as a measured zero-dispersion arm.
+- Suite: 53 pytest.
+
 v1.7.1 — 2026-10-23
 
 ## Round-12 independent clean review (fresh reviewer, cold reading)

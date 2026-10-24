@@ -147,11 +147,14 @@ def summarize(values: list[float]) -> dict:
     n = len(values)
     mean = statistics.fmean(values)
     median = statistics.median(values)
-    sd = statistics.stdev(values) if n > 1 else 0.0
-    sem = sd / math.sqrt(n) if n else 0.0
+    # Dispersion is undefined for n=1; report None (not a misleading 0.0) to
+    # both Markdown and JSON consumers so a single seed is not read as a
+    # measured zero-dispersion arm.
+    sd = statistics.stdev(values) if n > 1 else None
+    sem = (sd / math.sqrt(n)) if n > 1 and sd is not None else None
     df = n - 1
     tcrit = t_critical(df) if n > 1 else 0.0
-    half = tcrit * sem
+    half = tcrit * sem if sem is not None else 0.0
     # Exact t table through df=30; beyond that a Cornish-Fisher t approximation
     # (accurate to <5e-4, converging to the 1.96 normal tail), flagged so the
     # reader knows the CI is not from the exact lookup table.
@@ -166,7 +169,7 @@ def summarize(values: list[float]) -> dict:
         "ci_hi": mean + half if n > 1 else mean,
         "ci_method": ci_method,
         "median": median,
-        "iqr": iqr(values),
+        "iqr": iqr(values) if n > 1 else None,
         "min": s[0],
         "max": s[-1],
         # Dispersion is undefined (not zero) for n=1; do not report a false
@@ -225,15 +228,25 @@ def gate_arm(summary: dict) -> tuple[list[str], list[str]]:
 
 
 def compare_arms(name_a: str, sa: dict, name_b: str, sb: dict) -> dict:
-    """Compare two summaries; flag CI overlap. Cohen's d is computed by caller
-    from the raw lists (this function only sees summaries)."""
+    """Compare two summaries; flag CI overlap and zero-variance degeneracy.
+    Cohen's d is computed by caller from the raw lists (this function only sees
+    summaries). A zero-variance arm is a constant (point CI), not a distribution:
+    the overlap test is then degenerate and cannot support a superiority claim."""
     overlap = intervals_overlap(sa["ci_lo"], sa["ci_hi"], sb["ci_lo"], sb["ci_hi"])
+    zero_var = bool(sa.get("zero_variance") or sb.get("zero_variance"))
+    if zero_var:
+        verdict = "ZERO_VARIANCE"
+    elif overlap:
+        verdict = "CI_OVERLAP"
+    else:
+        verdict = "CI_DISJOINT"
     return {
         "arm_a": name_a,
         "arm_b": name_b,
         "mean_diff": sa["mean"] - sb["mean"],
         "ci_overlap": overlap,
-        "verdict": "CI_OVERLAP" if overlap else "CI_DISJOINT",
+        "zero_variance": zero_var,
+        "verdict": verdict,
     }
 
 
@@ -468,7 +481,14 @@ def build_report(
             cmp_blocks.append(f"- pooled Cohen's d: {d:.3f} (negligible |d|<0.2, small 0.2-0.5, medium 0.5-0.8, large >=0.8)")
         else:
             cmp_blocks.append("- pooled Cohen's d: n/a (n<2 or zero pooled variance)")
-        if c["ci_overlap"]:
+        if c["zero_variance"]:
+            failures.append(
+                f"at least one arm ({arm_name} / {other_name}) has zero variance: "
+                "a constant is a point, not a distribution, so a point CI cannot "
+                "support a superiority claim — check logging/clip and re-run"
+            )
+            cmp_blocks.append("- verdict: **ZERO VARIANCE — no superiority claim supported**")
+        elif c["ci_overlap"]:
             failures.append(
                 f"95% CIs of {arm_name} and {other_name} overlap: do NOT claim "
                 "superiority; report the overlapping distributions instead"

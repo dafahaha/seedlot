@@ -33,13 +33,17 @@ def test_summarize_known_values():
     assert s["ci_hi"] - s["ci_lo"] == pytest.approx(2 * 4.303 * (2 / (3 ** 0.5)), rel=1e-3)
 
 
-def test_summarize_single_value_has_zero_std():
+def test_summarize_single_value_has_undefined_dispersion():
     s = sl.summarize([7.0])
     assert s["n"] == 1
-    assert s["std"] == 0.0
+    # Dispersion is undefined for n=1, not observed-zero: report None (not a
+    # misleading 0.0) so Markdown/JSON consumers never read a single seed as a
+    # measured zero-dispersion arm.
+    assert s["std"] is None
+    assert s["sem"] is None
+    assert s["iqr"] is None
     assert s["ci_lo"] == s["ci_hi"] == 7.0
-    # Dispersion is undefined for n=1, not observed-zero: zero_variance must
-    # not be reported true for a single seed.
+    # zero_variance must not be reported true for a single seed either.
     assert s["zero_variance"] is False
 
 
